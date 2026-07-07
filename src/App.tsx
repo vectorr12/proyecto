@@ -52,6 +52,10 @@ function App() {
     const saved = localStorage.getItem('favoriteGames')
     return saved ? JSON.parse(saved) : []
   })
+  const [lockedGames, setLockedGames] = useState<number[]>(() => {
+    const saved = localStorage.getItem('lockedGames')
+    return saved ? JSON.parse(saved) : []
+  })
   const [showSidebar, setShowSidebar] = useState(false)
 
   const genres = Array.from(new Set(games.map(g => g.genre))).sort()
@@ -64,6 +68,16 @@ function App() {
         ? prev.filter(id => id !== gameId)
         : [...prev, gameId]
       localStorage.setItem('favoriteGames', JSON.stringify(updated))
+      return updated
+    })
+  }
+
+  const toggleLocked = (gameId: number) => {
+    setLockedGames(prev => {
+      const updated = prev.includes(gameId)
+        ? prev.filter(id => id !== gameId)
+        : [...prev, gameId]
+      localStorage.setItem('lockedGames', JSON.stringify(updated))
       return updated
     })
   }
@@ -180,37 +194,51 @@ function App() {
         <section className="games-section">
           {filteredGames.length > 0 ? (
             <section className="games-grid" aria-label="Listado de videojuegos">
-              {filteredGames.map((game) => (
-                <article className="game-card" key={game.id}>
-                  <div className="card-image-wrapper">
-                    <img src={game.thumbnail} alt={game.title} />
-                    <button
-                      className={`favorite-btn ${favorites.includes(game.id) ? 'active' : ''}`}
-                      onClick={() => toggleFavorite(game.id)}
-                      aria-label={favorites.includes(game.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-                    >
-                      {favorites.includes(game.id) ? '❤️' : '🤍'}
-                    </button>
-                  </div>
-                  <div className="game-content">
-                    <div className="game-top">
-                      <h2>{game.title}</h2>
-                      <span className="badge">{game.genre}</span>
+              {filteredGames.map((game) => {
+                const isLocked = lockedGames.includes(game.id)
+
+                return (
+                  <article className={`game-card ${isLocked ? 'locked' : ''}`} key={game.id}>
+                    <div className="card-image-wrapper">
+                      <img src={game.thumbnail} alt={game.title} />
+                      <div className="card-actions">
+                        <button
+                          className={`favorite-btn ${favorites.includes(game.id) ? 'active' : ''}`}
+                          onClick={() => toggleFavorite(game.id)}
+                          aria-label={favorites.includes(game.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                          disabled={isLocked}
+                        >
+                          {favorites.includes(game.id) ? '❤️' : '🤍'}
+                        </button>
+                        <button
+                          className={`lock-btn ${isLocked ? 'active' : ''}`}
+                          onClick={() => toggleLocked(game.id)}
+                          aria-label={isLocked ? 'Desbloquear elemento' : 'Bloquear elemento'}
+                        >
+                          {isLocked ? '🔒' : '🔓'}
+                        </button>
+                      </div>
                     </div>
-                    <p>{getSpanishDescription(game)}</p>
-                    <div className="meta">
-                      <span>Plataforma: {game.platform}</span>
-                      <span>Editor: {game.publisher}</span>
+                    <div className="game-content">
+                      <div className="game-top">
+                        <h2>{game.title}</h2>
+                        <span className="badge">{game.genre}</span>
+                      </div>
+                      <p>{getSpanishDescription(game)}</p>
+                      <div className="meta">
+                        <span>Plataforma: {game.platform}</span>
+                        <span>Editor: {game.publisher}</span>
+                      </div>
+                      <div className="game-footer">
+                        <span>Publicado: {game.release_date}</span>
+                        <span className={isLocked ? 'locked-label' : 'available-label'}>
+                          {isLocked ? 'Bloqueado' : 'Disponible'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="game-footer">
-                      <span>Publicado: {game.release_date}</span>
-                      <a href={game.game_url} target="_blank" rel="noreferrer">
-                        Ver más
-                      </a>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                )
+              })}
             </section>
           ) : (
             <p className="no-results">No se encontraron juegos que coincidan con tus criterios de búsqueda.</p>
