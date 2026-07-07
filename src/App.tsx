@@ -101,7 +101,7 @@ function App() {
         <p className="eyebrow">Catálogo de videojuegos</p>
         <h1>Descubre títulos gratis y populares</h1>
         <p className="subtitle">
-          Explora una selección sencilla de juegos.
+          Victor Morales, Alex Crooker.
         </p>
       </section>
 
