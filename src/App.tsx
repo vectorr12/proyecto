@@ -45,6 +45,19 @@ function App() {
   const [games, setGames] = useState<Game[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedGenre, setSelectedGenre] = useState<string>('todos')
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('todos')
+
+  const genres = Array.from(new Set(games.map(g => g.genre))).sort()
+  const platforms = Array.from(new Set(games.map(g => g.platform))).sort()
+
+  const filteredGames = games.filter(game => {
+    const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesGenre = selectedGenre === 'todos' || game.genre === selectedGenre
+    const matchesPlatform = selectedPlatform === 'todos' || game.platform === selectedPlatform
+    return matchesSearch && matchesGenre && matchesPlatform
+  })
 
   useEffect(() => {
     const controller = new AbortController()
@@ -88,37 +101,83 @@ function App() {
         <p className="eyebrow">Catálogo de videojuegos</p>
         <h1>Descubre títulos gratis y populares</h1>
         <p className="subtitle">
-          Explora una selección sencilla de juegos cargados desde una API pública.
+          Explora una selección sencilla de juegos.
         </p>
       </section>
+
+      {!loading && !error && (
+        <section className="search-filters">
+          <input
+            type="text"
+            placeholder="Buscar por nombre..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          <div className="filters">
+            <select
+              value={selectedGenre}
+              onChange={(e) => setSelectedGenre(e.target.value)}
+              className="filter-select"
+              aria-label="Filtrar por género"
+            >
+              <option value="todos">Todos los géneros</option>
+              {genres.map((genre) => (
+                <option key={genre} value={genre}>
+                  {genre}
+                </option>
+              ))}
+            </select>
+            <select
+              value={selectedPlatform}
+              onChange={(e) => setSelectedPlatform(e.target.value)}
+              className="filter-select"
+              aria-label="Filtrar por plataforma"
+            >
+              <option value="todos">Todas las plataformas</option>
+              {platforms.map((platform) => (
+                <option key={platform} value={platform}>
+                  {platform}
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
+      )}
 
       {loading && <p className="status">Cargando juegos...</p>}
       {error && <p className="status error">{error}</p>}
 
       {!loading && !error && (
-        <section className="games-grid" aria-label="Listado de videojuegos">
-          {games.map((game) => (
-            <article className="game-card" key={game.id}>
-              <img src={game.thumbnail} alt={game.title} />
-              <div className="game-content">
-                <div className="game-top">
-                  <h2>{game.title}</h2>
-                  <span className="badge">{game.genre}</span>
-                </div>
-                <p>{getSpanishDescription(game)}</p>
-                <div className="meta">
-                  <span>Plataforma: {game.platform}</span>
-                  <span>Editor: {game.publisher}</span>
-                </div>
-                <div className="game-footer">
-                  <span>Publicado: {game.release_date}</span>
-                  <a href={game.game_url} target="_blank" rel="noreferrer">
-                    Ver más
-                  </a>
-                </div>
-              </div>
-            </article>
-          ))}
+        <section className="games-section">
+          {filteredGames.length > 0 ? (
+            <section className="games-grid" aria-label="Listado de videojuegos">
+              {filteredGames.map((game) => (
+                <article className="game-card" key={game.id}>
+                  <img src={game.thumbnail} alt={game.title} />
+                  <div className="game-content">
+                    <div className="game-top">
+                      <h2>{game.title}</h2>
+                      <span className="badge">{game.genre}</span>
+                    </div>
+                    <p>{getSpanishDescription(game)}</p>
+                    <div className="meta">
+                      <span>Plataforma: {game.platform}</span>
+                      <span>Editor: {game.publisher}</span>
+                    </div>
+                    <div className="game-footer">
+                      <span>Publicado: {game.release_date}</span>
+                      <a href={game.game_url} target="_blank" rel="noreferrer">
+                        Ver más
+                      </a>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </section>
+          ) : (
+            <p className="no-results">No se encontraron juegos que coincidan con tus criterios de búsqueda.</p>
+          )}
         </section>
       )}
     </main>
