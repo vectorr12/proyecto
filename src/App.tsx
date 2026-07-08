@@ -1,18 +1,10 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-
-type Game = {
-  id: number
-  title: string
-  thumbnail: string
-  short_description: string
-  genre: string
-  platform: string
-  publisher: string
-  developer: string
-  release_date: string
-  game_url: string
-}
+import FavoritesSidebar from './components/BarraFavoritos'
+import GameCard from './components/TarjetaJuego'
+import Header from './components/Encabezado'
+import SearchFilters from './components/BuscadorFiltros'
+import type { Game } from './types'
 
 function getSpanishDescription(game: Game) {
   const genre = game.genre.toLowerCase()
@@ -58,9 +50,9 @@ function App() {
   })
   const [showSidebar, setShowSidebar] = useState(false)
 
-  const genres = Array.from(new Set(games.map(g => g.genre))).sort()
-  const platforms = Array.from(new Set(games.map(g => g.platform))).sort()
-  const favoriteGames = games.filter(g => favorites.includes(g.id))
+  const genres = Array.from(new Set(games.map((game) => game.genre))).sort()
+  const platforms = Array.from(new Set(games.map((game) => game.platform))).sort()
+  const favoriteGames = games.filter((game) => favorites.includes(game.id))
 
   const toggleFavorite = (gameId: number) => {
     setFavorites(prev => {
@@ -80,13 +72,20 @@ function App() {
       localStorage.setItem('lockedGames', JSON.stringify(updated))
       return updated
     })
+
+    setFavorites(prev => {
+      const updated = prev.filter(id => id !== gameId)
+      localStorage.setItem('favoriteGames', JSON.stringify(updated))
+      return updated
+    })
   }
 
-  const filteredGames = games.filter(game => {
+  const filteredGames = games.filter((game) => {
+    const isLocked = lockedGames.includes(game.id)
     const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesGenre = selectedGenre === 'todos' || game.genre === selectedGenre
     const matchesPlatform = selectedPlatform === 'todos' || game.platform === selectedPlatform
-    return matchesSearch && matchesGenre && matchesPlatform
+    return !isLocked && matchesSearch && matchesGenre && matchesPlatform
   })
 
   useEffect(() => {
@@ -128,160 +127,59 @@ function App() {
   return (
     <div className="app-layout">
       <main className="catalog-page">
-        <section className="catalog-header">
-          <div className="header-top">
-            <div>
-              <p className="eyebrow">Catálogo de videojuegos</p>
-              <h1>Descubre títulos gratis y populares</h1>
-            </div>
-            <button
-              className="favorites-toggle"
-              onClick={() => setShowSidebar(!showSidebar)}
-              aria-label="Mostrar favoritos"
-            >
-              FAVORITOS {favorites.length}
-            </button>
-          </div>
-          <p className="subtitle">
-            Victor Morales, Alex Crooker.
-          </p>
-        </section>
+        <Header
+          favoritesCount={favorites.length}
+          onToggleSidebar={() => setShowSidebar((prev) => !prev)}
+        />
 
-      {!loading && !error && (
-        <section className="search-filters">
-          <input
-            type="text"
-            placeholder="Buscar por nombre..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
+        {!loading && !error && (
+          <SearchFilters
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            selectedGenre={selectedGenre}
+            setSelectedGenre={setSelectedGenre}
+            selectedPlatform={selectedPlatform}
+            setSelectedPlatform={setSelectedPlatform}
+            genres={genres}
+            platforms={platforms}
+            totalGames={games.length}
+            favoriteCount={favorites.length}
+            lockedCount={lockedGames.length}
           />
-          <div className="filters">
-            <select
-              value={selectedGenre}
-              onChange={(e) => setSelectedGenre(e.target.value)}
-              className="filter-select"
-              aria-label="Filtrar por género"
-            >
-              <option value="todos">Todos los géneros</option>
-              {genres.map((genre) => (
-                <option key={genre} value={genre}>
-                  {genre}
-                </option>
-              ))}
-            </select>
-            <select
-              value={selectedPlatform}
-              onChange={(e) => setSelectedPlatform(e.target.value)}
-              className="filter-select"
-              aria-label="Filtrar por plataforma"
-            >
-              <option value="todos">Todas las plataformas</option>
-              {platforms.map((platform) => (
-                <option key={platform} value={platform}>
-                  {platform}
-                </option>
-              ))}
-            </select>
-          </div>
-        </section>
-      )}
-
-      {loading && <p className="status">Cargando juegos...</p>}
-      {error && <p className="status error">{error}</p>}
-
-      {!loading && !error && (
-        <section className="games-section">
-          {filteredGames.length > 0 ? (
-            <section className="games-grid" aria-label="Listado de videojuegos">
-              {filteredGames.map((game) => {
-                const isLocked = lockedGames.includes(game.id)
-
-                return (
-                  <article className={`game-card ${isLocked ? 'locked' : ''}`} key={game.id}>
-                    <div className="card-image-wrapper">
-                      <img src={game.thumbnail} alt={game.title} />
-                      <div className="card-actions">
-                        <button
-                          className={`favorite-btn ${favorites.includes(game.id) ? 'active' : ''}`}
-                          onClick={() => toggleFavorite(game.id)}
-                          aria-label={favorites.includes(game.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-                          disabled={isLocked}
-                        >
-                          {favorites.includes(game.id) ? '❤️' : '🤍'}
-                        </button>
-                        <button
-                          className={`lock-btn ${isLocked ? 'active' : ''}`}
-                          onClick={() => toggleLocked(game.id)}
-                          aria-label={isLocked ? 'Desbloquear elemento' : 'Bloquear elemento'}
-                        >
-                          {isLocked ? '🔒' : '🔓'}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="game-content">
-                      <div className="game-top">
-                        <h2>{game.title}</h2>
-                        <span className="badge">{game.genre}</span>
-                      </div>
-                      <p>{getSpanishDescription(game)}</p>
-                      <div className="meta">
-                        <span>Plataforma: {game.platform}</span>
-                        <span>Editor: {game.publisher}</span>
-                      </div>
-                      <div className="game-footer">
-                        <span>Publicado: {game.release_date}</span>
-                        <span className={isLocked ? 'locked-label' : 'available-label'}>
-                          {isLocked ? 'Bloqueado' : 'Disponible'}
-                        </span>
-                      </div>
-                    </div>
-                  </article>
-                )
-              })}
-            </section>
-          ) : (
-            <p className="no-results">No se encontraron juegos que coincidan con tus criterios de búsqueda.</p>
-          )}
-        </section>
-      )}
-    </main>
-    <aside className={`sidebar ${showSidebar ? 'open' : ''}`}>
-      <div className="sidebar-header">
-        <h2>Mis Favoritos</h2>
-        <button
-          className="sidebar-close"
-          onClick={() => setShowSidebar(false)}
-          aria-label="Cerrar favoritos"
-        >
-          ✕
-        </button>
-      </div>
-      <div className="sidebar-content">
-        {favoriteGames.length > 0 ? (
-          <ul className="favorites-list">
-            {favoriteGames.map(game => (
-              <li key={game.id} className="favorite-item">
-                <img src={game.thumbnail} alt={game.title} />
-                <div className="favorite-info">
-                  <h3>{game.title}</h3>
-                  <span className="badge-small">{game.genre}</span>
-                  <button
-                    className="remove-favorite"
-                    onClick={() => toggleFavorite(game.id)}
-                    aria-label="Quitar de favoritos"
-                  >
-                    Quitar
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="no-favorites">Aún no tienes favoritos. ¡Agrega algunos juegos!</p>
         )}
-      </div>
-    </aside>
+
+        {loading && <p className="status">Cargando juegos...</p>}
+        {error && <p className="status error">{error}</p>}
+
+        {!loading && !error && (
+          <section className="games-section">
+            {filteredGames.length > 0 ? (
+              <section className="games-grid" aria-label="Listado de videojuegos">
+                {filteredGames.map((game) => (
+                  <GameCard
+                    key={game.id}
+                    game={game}
+                    description={getSpanishDescription(game)}
+                    isFavorite={favorites.includes(game.id)}
+                    isLocked={lockedGames.includes(game.id)}
+                    onToggleFavorite={() => toggleFavorite(game.id)}
+                    onToggleLock={() => toggleLocked(game.id)}
+                  />
+                ))}
+              </section>
+            ) : (
+              <p className="no-results">No se encontraron juegos que coincidan con tus criterios de búsqueda.</p>
+            )}
+          </section>
+        )}
+      </main>
+
+      <FavoritesSidebar
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        favoriteGames={favoriteGames}
+        onRemoveFavorite={(gameId) => toggleFavorite(gameId)}
+      />
     </div>
   )
 }
